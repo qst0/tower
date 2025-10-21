@@ -12,7 +12,7 @@
 </style>
 </head>
 <body>
-<h1>Mage’s Tower</h1>
+<h1>Tower</h1>
 <p>Energy: <span id="energy">0</span> | Mana: <span id="mana">0</span> | Lore: <span id="lore">0</span> | Floor: <span id="floor">1</span> | Tempo: <span id="tempo">0</span></p>
 <p id="status"></p>
 
@@ -49,6 +49,8 @@ const showReadmeBtn = document.getElementById("showReadmeBtn");
 const logDiv = document.getElementById("log");
 let logBackup = null;
 let readmeActive = false;
+const PASSIVE_LORE_RATE = 0.05; // Lore per second of passive study
+let autoRefreshHandle = null;
 
 
 // Simple Markdown to HTML (very basic, only for this README)
@@ -240,6 +242,7 @@ const game = {
   energy: 0,
   mana: 0,
   lore: 0,
+  loreProgress: 0,
   unlocked: { study: false },
   lastTick: Date.now(),
   floor: 1,
@@ -315,6 +318,13 @@ function tick() {
   // passive regen (increased for early progress)
   game.energy += elapsed * 0.2; // +0.2 energy/sec
   game.mana += elapsed * 0.1;  // +0.1 mana/sec
+  game.loreProgress += elapsed * PASSIVE_LORE_RATE;
+  if (game.loreProgress >= 1) {
+    const gainedLore = Math.floor(game.loreProgress);
+    game.lore += gainedLore;
+    game.loreProgress -= gainedLore;
+    ensureLoreUnlocks();
+  }
 
   updateUI();
   scheduleAutosave();
@@ -397,6 +407,7 @@ function randomFloorEvent() {
     () => { 
       game.lore++; 
       log(`You discover ancient runes. Lore +1 (Lore: ${game.lore})`); 
+      ensureLoreUnlocks();
     },
     () => {
       const lost = Math.min(2, Math.floor(game.energy));
@@ -465,6 +476,7 @@ function performStudyRepeatedly() {
     game.mana -= 5;
     gainLoreIfFirst("study", "You study the glyphs and glimpse deeper knowledge...");
     game.lore++;
+    ensureLoreUnlocks();
     count++;
   }
   if (count > 0) {
@@ -653,15 +665,22 @@ document.getElementById("climbBtn").onclick = () => {
   if (game.floor % 3 === 0) {
     game.lore++;
     log(`You uncover new lore as you climb. Lore +1 (Lore: ${game.lore})`);
+    ensureLoreUnlocks();
   }
 
   if (game.floor >= 10) {
     const elapsed = (Date.now() - game.startTime) / 1000;
+    const tempoBefore = game.tempo;
     if (elapsed <= 120) {
       game.tempo++;
       log(`You’ve reached Floor 10 in record time! Tempo +1 (Tempo: ${game.tempo})`);
     } else {
       log("You’ve reached Floor 10. The tower hums with quiet power...");
+    }
+    if (game.tempo > tempoBefore) {
+      game.lore = 0;
+      game.loreProgress = 0;
+      log("Your surge in tempo scatters accumulated lore. Lore resets to 0.");
     }
     game.startTime = null;
   }
@@ -675,16 +694,20 @@ function gainLoreIfFirst(action, message) {
     game.unlocked[key] = true;
     log(message);
     game.lore++;
-    if (game.lore >= 2 && !game.unlocked.study) {
-      game.unlocked.study = true;
-      log("You’ve unlocked the ability to Study Glyphs!");
-    }
-    if  (game.lore >= 4 && !game.unlocked.climb) {
-      game.unlocked.climb = true;
-      log("You feel the pull of the tower above you... You may now climb!");
-    }
+    ensureLoreUnlocks();
   }
   updateUI();
+}
+
+function ensureLoreUnlocks() {
+  if (game.lore >= 2 && !game.unlocked.study) {
+    game.unlocked.study = true;
+    log("You’ve unlocked the ability to Study Glyphs!");
+  }
+  if (game.lore >= 4 && !game.unlocked.climb) {
+    game.unlocked.climb = true;
+    log("You feel the pull of the tower above you... You may now climb!");
+  }
 }
 
 // ---- Save / Load ----
@@ -693,58 +716,21 @@ function saveGame() {
 }
 
 // Load game from localStorage or imported save, restoring flavored refresh/sessionStorage logic
-function loadGame(imported) {
-  let saveObj = null;
-  if (typeof imported === "object" && imported !== null) {
-    saveObj = imported;
-  } else {
-    const data = localStorage.getItem("tower_autosave"); // <-- updated key
-    if (data) {
-      try {
-        saveObj = JSON.parse(data);
-      } catch (e) {
-        saveObj = null;
-      }
-    }
-  }
-
-  if (saveObj) {
-    // Restore all properties
-    Object.assign(game, saveObj);
-
-    // Ensure logHistory is newest-first
-    if (Array.isArray(game.logHistory) && game.logHistory.length > 1) {
-      const getTS = s => s && s[0] === "[" ? s.slice(1, 15) : "";
-      if (getTS(game.logHistory[0]) < getTS(game.logHistory[1])) {
-        game.logHistory.reverse();
-      }
-    }
-
-    // Render the log
-    const logDiv = document.getElementById("log");
-    logDiv.textContent = game.logHistory.join("\n");
-    logDiv.scrollTop = 0;
-
-    log("Save loaded.");
-  } else {
-    game.logHistory = [];
-    log("A new journey begins...");
-  }
-
-  updateUI();
-  scheduleAutosave();
-}
-function loadGame(imported) {
+function loadGame(imported, options = {}) {
+  const { manual = false } = options;
   let saveObj = null;
   let loadedFromImport = false;
   if (typeof imported === "object" && imported !== null) {
     saveObj = imported;
     loadedFromImport = true;
   } else {
-    const data = localStorage.getItem("mages_tower_save");
-    if (data) {
+    const storageKeys = ["tower_autosave", "mages_tower_save"];
+    for (const key of storageKeys) {
+      const data = localStorage.getItem(key);
+      if (!data) continue;
       try {
         saveObj = JSON.parse(data);
+        break;
       } catch (e) {
         saveObj = null;
       }
@@ -755,6 +741,11 @@ function loadGame(imported) {
     if (typeof saveObj.energy === "number") game.energy = saveObj.energy;
     if (typeof saveObj.mana === "number") game.mana = saveObj.mana;
     if (typeof saveObj.lore === "number") game.lore = saveObj.lore;
+    if (typeof saveObj.loreProgress === "number") {
+      game.loreProgress = saveObj.loreProgress;
+    } else {
+      game.loreProgress = 0;
+    }
     if (typeof saveObj.floor === "number") game.floor = saveObj.floor;
     if (typeof saveObj.tempo === "number") game.tempo = saveObj.tempo;
     if (typeof saveObj.resting === "boolean") game.resting = saveObj.resting;
@@ -794,23 +785,43 @@ function loadGame(imported) {
       }
     }
     if (!flavored && !loadedFromImport) {
-      log("Save loaded.");
+      log(manual ? "Save loaded from browser storage." : "Save loaded.");
     }
-    // For imported saves, do not log "Save loaded." (importers handle their own log)
   } else {
-    game.logHistory = [];
-    document.getElementById("log").textContent = "";
-    log("A new journey begins...");
+    if (!manual) {
+      game.logHistory = [];
+      document.getElementById("log").textContent = "";
+    }
+    if (manual) {
+      log("No saved game was found.");
+    } else {
+      log("A new journey begins...");
+    }
+    game.loreProgress = 0;
+  }
+  // Clear transient rest/meditation state that cannot resume after reload
+  if (game.resting) {
+    game.resting = false;
+  }
+  const timerMsgEl = document.getElementById("timerMessage");
+  if (timerMsgEl) {
+    timerMsgEl.textContent = "";
   }
   updateUI();
   scheduleAutosave();
+  return !!saveObj;
 }
 
-// --- Auto-refresh logic REMOVED ---
-// (Auto-refresh, setInterval, and focus/blur listeners have been disabled as requested.)
-
-
 // ---- Export / Import ----
+document.getElementById("saveBtn").onclick = () => {
+  saveGame();
+  log("Game saved to your browser.");
+};
+
+document.getElementById("loadBtn").onclick = () => {
+  loadGame(null, { manual: true });
+};
+
 document.getElementById("exportBtn").onclick = () => {
   const blob = new Blob([JSON.stringify(game, null, 2)], {type: "application/json"});
   const a = document.createElement("a");
