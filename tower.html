@@ -17,10 +17,10 @@
 <p id="status"></p>
 
 <div id="actions">
-  <button id="focusBtn">Focus (+1 Mana)</button>
-  <button id="restBtn">Rest (+5 Energy) 😴</button>
-  <button id="studyBtn" style="display:none;">Study Glyph (costs 5 Mana)</button>
-  <button id="climbBtn" style="display:none;">Climb the Tower (costs 5 Energy)</button>
+  <button id="focusBtn">Focus (+1 Mana) 💫</button>
+  <button id="restBtn">Meditate (+5 Energy) 🧘</button>
+  <button id="studyBtn" style="display:none;">Study Glyph (costs 5 Mana) 📜</button>
+  <button id="climbBtn" style="display:none;">Climb the Tower (costs 5 Energy) 🧗</button>
 </div>
 
 <section id="mechanics" style="margin-top:32px;">
@@ -36,10 +36,10 @@
 
   <h3>Actions</h3>
   <ul>
-    <li><strong>Focus</strong>: Converts 1 Energy into 1 Mana. Hold the button to repeat the action quickly as long as you have energy.</li>
-    <li><strong>Rest</strong>: Rest for 5 seconds to restore 5 Energy. During rest, all other actions are disabled.</li>
-    <li><strong>Study Glyph</strong>: (Unlocked after gaining enough Lore) Spend 5 Mana to gain 1 Lore. Hold the button to repeat as long as you have mana.</li>
-    <li><strong>Climb the Tower</strong>: (Unlocked after gaining enough Lore) Spend Energy to ascend one floor. The energy cost increases at higher floors.</li>
+    <li><strong>Focus 💫</strong>: Converts 1 Energy into 1 Mana. Hold the button to repeat the action quickly as long as you have energy.</li>
+    <li><strong>Meditate 🧘</strong>: Meditate for 5 seconds to restore 5 Energy. During meditation, all other actions are disabled.</li>
+    <li><strong>Study Glyph 📜</strong>: (Unlocked after gaining enough Lore) Spend 5 Mana to gain 1 Lore. Hold the button to repeat as long as you have mana.</li>
+    <li><strong>Climb the Tower 🧗</strong>: (Unlocked after gaining enough Lore) Spend Energy to ascend one floor. The energy cost increases at higher floors.</li>
   </ul>
 
   <h3>Inventory</h3>
@@ -362,24 +362,24 @@ document.getElementById("studyBtn").addEventListener("mouseleave", () => {
   }
 });
 
-// Rest button repeated action on mousedown/up
-// For rest, the original behavior is a 5 second rest with delayed energy gain, so repeating is not meaningful.
-// We will keep original single click behavior but disable repeated action.
+// Meditate button (formerly Rest) repeated action on mousedown/up
+// For meditate, the behavior is a 5 second meditation with delayed energy gain; repeating is not meaningful.
+// We keep single click behavior and update all text/logs.
 document.getElementById("restBtn").onclick = () => {
   if (game.resting) {
-    log("You are already resting...");
+    log("You are already meditating...");
     return;
   }
   game.resting = true;
-  log("You begin to rest for 5 seconds...");
+  log("You begin to meditate for 5 seconds...");
   disableActions(true);
   const statusEl = document.getElementById("status");
   let remaining = 5;
-  statusEl.textContent = "Resting... " + remaining + "s remaining";
+  statusEl.textContent = "Meditating... " + remaining + "s remaining";
   const interval = setInterval(() => {
     remaining--;
     if (remaining > 0) {
-      statusEl.textContent = "Resting... " + remaining + "s remaining";
+      statusEl.textContent = "Meditating... " + remaining + "s remaining";
     } else {
       clearInterval(interval);
       statusEl.textContent = "";
@@ -388,9 +388,9 @@ document.getElementById("restBtn").onclick = () => {
   setTimeout(() => {
     game.energy += 5;
     game.resting = false;
-    log(`You feel refreshed. Energy +5 (Energy: ${Math.floor(game.energy)})`);
+    log(`You feel renewed. Energy +5 (Energy: ${Math.floor(game.energy)})`);
     disableActions(false);
-    gainLoreIfFirst("rest", "Your body recovers. Energy flows again.");
+    gainLoreIfFirst("meditate", "Your mind clears and energy flows anew.");
     statusEl.textContent = "";
     updateUI();
   }, 5000);
@@ -488,8 +488,10 @@ document.getElementById("climbBtn").onclick = () => {
 };
 
 function gainLoreIfFirst(action, message) {
-  if (!game.unlocked[action]) {
-    game.unlocked[action] = true;
+  // For backwards compatibility: treat both "rest" and "meditate" as the same unlock
+  const key = action === "rest" ? "meditate" : action;
+  if (!game.unlocked[key]) {
+    game.unlocked[key] = true;
     log(message);
     game.lore++;
     if (game.lore >= 2 && !game.unlocked.study) {
