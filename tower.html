@@ -43,7 +43,46 @@ const game = {
   startTime: null,
   resting: false,
   inventory: { "Energy Potion": 0, "Mana Crystal": 0, "Glyph Shard": 0 },
+  logHistory: [],
 };
+
+// ---- Helpers for logging ----
+function pad(num, size) {
+  let s = num.toString();
+  while (s.length < size) s = "0" + s;
+  return s;
+}
+
+function getTimestamp() {
+  const d = new Date();
+  return d.getFullYear().toString() +
+         pad(d.getMonth() + 1, 2) +
+         pad(d.getDate(), 2) +
+         pad(d.getHours(), 2) +
+         pad(d.getMinutes(), 2) +
+         pad(d.getSeconds(), 2) +
+         pad(d.getMilliseconds(), 3).slice(0,2); // NN = first two digits of ms
+}
+
+function getRandomHex(len) {
+  let result = "";
+  const hexChars = "0123456789abcdef";
+  for (let i = 0; i < len; i++) {
+    result += hexChars[Math.floor(Math.random() * 16)];
+  }
+  return result;
+}
+
+// ---- Log function with timestamp and hash ----
+function log(text) {
+  const timestamp = getTimestamp();
+  const hash = getRandomHex(8);
+  const entry = `[${timestamp}][${hash}] ${text}`;
+  game.logHistory.push(entry);
+  const logDiv = document.getElementById("log");
+  logDiv.textContent += (logDiv.textContent ? "\n" : "") + entry;
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
 
 // ---- Game Loop ----
 function tick() {
@@ -95,12 +134,6 @@ function getFloorCost(floor) {
   if (floor >= 4 && floor <= 6) return 6;
   if (floor >= 7 && floor <= 10) return 8;
   return 8; // default for beyond floor 10 if needed
-}
-
-function log(text) {
-  const logDiv = document.getElementById("log");
-  logDiv.textContent += "\n" + text;
-  logDiv.scrollTop = logDiv.scrollHeight;
 }
 
 // ---- Inventory ----
@@ -221,9 +254,11 @@ document.getElementById("climbBtn").onclick = () => {
 
   // Special floor 5 event: choose path
   if (game.floor === 5) {
-    let choice = prompt("You reach Floor 5: Choose your path (left/right):").toLowerCase();
+    let choice = prompt("You reach Floor 5: Choose your path (left/right):");
+    if (choice) choice = choice.toLowerCase();
     while (choice !== "left" && choice !== "right") {
-      choice = prompt("Invalid choice. Please choose 'left' or 'right':").toLowerCase();
+      choice = prompt("Invalid choice. Please choose 'left' or 'right':");
+      if (choice) choice = choice.toLowerCase();
     }
     if (choice === "left") {
       // left path costs more energy but gives mana
@@ -322,6 +357,17 @@ function loadGame() {
   const data = localStorage.getItem("mages_tower_save");
   if (data) {
     Object.assign(game, JSON.parse(data));
+    // Restore full log from logHistory
+    const logDiv = document.getElementById("log");
+    logDiv.textContent = "";
+    if (Array.isArray(game.logHistory)) {
+      for (const entry of game.logHistory) {
+        logDiv.textContent += (logDiv.textContent ? "\n" : "") + entry;
+      }
+      logDiv.scrollTop = logDiv.scrollHeight;
+    } else {
+      game.logHistory = [];
+    }
     log("Save loaded.");
   } else {
     log("A new journey begins...");
@@ -352,6 +398,17 @@ document.getElementById("fileInput").addEventListener("change", (e) => {
     try {
       const imported = JSON.parse(reader.result);
       Object.assign(game, imported);
+      // Restore full log from logHistory
+      const logDiv = document.getElementById("log");
+      logDiv.textContent = "";
+      if (Array.isArray(game.logHistory)) {
+        for (const entry of game.logHistory) {
+          logDiv.textContent += (logDiv.textContent ? "\n" : "") + entry;
+        }
+        logDiv.scrollTop = logDiv.scrollHeight;
+      } else {
+        game.logHistory = [];
+      }
       log("Save imported successfully!");
       saveGame();
       updateUI();
