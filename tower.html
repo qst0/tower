@@ -671,7 +671,7 @@ function gainLoreIfFirst(action, message) {
 
 // ---- Save / Load ----
 function saveGame() {
-  localStorage.setItem("mages_tower_save", JSON.stringify(game));
+  localStorage.setItem("tower_autosave", JSON.stringify(game));
 }
 
 // Load game from localStorage or imported save, restoring flavored refresh/sessionStorage logic
