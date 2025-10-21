@@ -48,8 +48,49 @@ const logDiv = document.getElementById("log");
 let logBackup = null;
 let readmeActive = false;
 
-// Embed the contents of readme.md below as a JS string
+
+// Simple Markdown to HTML (very basic, only for this README)
+function markdownToHtml(md) {
+  // Escape HTML
+  md = md.replace(/[&<>]/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];
+  });
+  // Headers
+  md = md.replace(/^### (.*)$/gm, '<h3>$1</h3>');
+  md = md.replace(/^## (.*)$/gm, '<h2>$1</h2>');
+  md = md.replace(/^# (.*)$/gm, '<h1>$1</h1>');
+  // Bold
+  md = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italics
+  md = md.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Unordered lists
+  md = md.replace(/^\s*[\*\-] (.*)$/gm, '<li>$1</li>');
+  md = md.replace(/(<li>[\s\S]+?<\/li>)/g, '<ul>$1</ul>');
+  // Tables (very simple)
+  md = md.replace(/\|(.+)\|\n\|([-\s\|]+)\|\n((\|.*\|\n)+)/g, function(_, head, dash, rows) {
+    const ths = head.split('|').map(s=>s.trim()).filter(Boolean).map(s=>`<th>${s}</th>`).join('');
+    const trs = rows.trim().split('\n').map(row=>{
+      const tds = row.split('|').map(s=>s.trim()).filter(Boolean).map(s=>`<td>${s}</td>`).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('');
+    return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+  });
+  // Paragraphs
+  md = md.replace(/([^\n>])\n([^\n#\-\*\|])/g, '$1<br>$2');
+  // Line breaks for single newlines (not after block tags)
+  md = md.replace(/\n{2,}/g, '</p><p>');
+  md = '<p>' + md + '</p>';
+  // Remove empty <p></p>
+  md = md.replace(/<p><\/p>/g, '');
+  // Remove nested <ul><ul>... (fix double wrap from above)
+  md = md.replace(/(<ul>)+/g, '<ul>');
+  md = md.replace(/(<\/ul>)+/g, '</ul>');
+  return md;
+}
+
+// --- Embedded fallback README text (update this as needed) ---
 const readmeText = `
+
 # readme.md
 
 ## Notes
@@ -99,46 +140,44 @@ This table explains when each action button becomes visible and usable in tower:
 
 ### Unlocks
 * Studying and climbing are unlocked as you gain Lore by performing actions and progressing in the tower.
-`;
 
-// Simple Markdown to HTML (very basic, only for this README)
-function markdownToHtml(md) {
-  // Escape HTML
-  md = md.replace(/[&<>]/g, function(c) {
-    return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];
-  });
-  // Headers
-  md = md.replace(/^### (.*)$/gm, '<h3>$1</h3>');
-  md = md.replace(/^## (.*)$/gm, '<h2>$1</h2>');
-  md = md.replace(/^# (.*)$/gm, '<h1>$1</h1>');
-  // Bold
-  md = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // Italics
-  md = md.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  // Unordered lists
-  md = md.replace(/^\s*[\*\-] (.*)$/gm, '<li>$1</li>');
-  md = md.replace(/(<li>[\s\S]+?<\/li>)/g, '<ul>$1</ul>');
-  // Tables (very simple)
-  md = md.replace(/\|(.+)\|\n\|([-\s\|]+)\|\n((\|.*\|\n)+)/g, function(_, head, dash, rows) {
-    const ths = head.split('|').map(s=>s.trim()).filter(Boolean).map(s=>`<th>${s}</th>`).join('');
-    const trs = rows.trim().split('\n').map(row=>{
-      const tds = row.split('|').map(s=>s.trim()).filter(Boolean).map(s=>`<td>${s}</td>`).join('');
-      return `<tr>${tds}</tr>`;
-    }).join('');
-    return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
-  });
-  // Paragraphs
-  md = md.replace(/([^\n>])\n([^\n#\-\*\|])/g, '$1<br>$2');
-  // Line breaks for single newlines (not after block tags)
-  md = md.replace(/\n{2,}/g, '</p><p>');
-  md = '<p>' + md + '</p>';
-  // Remove empty <p></p>
-  md = md.replace(/<p><\/p>/g, '');
-  // Remove nested <ul><ul>... (fix double wrap from above)
-  md = md.replace(/(<ul>)+/g, '<ul>');
-  md = md.replace(/(<\/ul>)+/g, '</ul>');
-  return md;
-}
+## Launch Checklist (Automagician / tower)
+
+This checklist tracks all steps needed to prepare for launch. Keep it updated as progress is made.
+
+### 1️⃣ Domain & Hosting
+- [ ] Secure domain (AUTOMAGITION.COM or preferred)
+- [ ] Set up DNS & hosting (GitHub Pages, Netlify, Vercel, or custom server)
+- [ ] Configure HTTPS / SSL certificate
+
+### 2️⃣ Game Code & Version Control
+- [ ] Ensure final stable build in \`tower.html\`
+- [ ] Use Git for version control with commits and \`.gitignore\`
+- [ ] Backup saves and dev notes
+
+### 3️⃣ Assets & Design
+- [ ] Finalize UI/UX (buttons, log, status indicators)
+- [ ] Polish styles (colors, fonts, readability)
+- [ ] Add sounds / effects if desired
+- [ ] Prepare screenshots / GIFs for marketing
+
+### 4️⃣ Features & Testing
+- [ ] Verify game loop, idle regen, resource calculations
+- [ ] Test floor progression, tempo tracking, rest/focus mechanics
+- [ ] Ensure save/load/export/import works correctly
+- [ ] Cross-browser testing (Chrome, Firefox, Safari)
+
+### 5️⃣ Marketing & Launch Prep
+- [ ] Create README / dev notes for users
+- [ ] Prepare social media / blog posts
+- [ ] Consider teaser videos or GIFs
+- [ ] Write press or community announcements
+
+### 6️⃣ Launch & Monitoring
+- [ ] Upload final build to hosting / domain
+- [ ] Monitor player feedback and bug reports
+- [ ] Plan post-launch updates and lore expansions
+`;
 
 function showReadme() {
   if (readmeActive) return;
@@ -148,15 +187,40 @@ function showReadme() {
   // Disable all action buttons
   disableActions(true);
   document.getElementById("showReadmeBtn").disabled = true;
-  // Render README
+  // Show loading indicator
   logDiv.innerHTML =
     '<div id="readmeView" style="background:#181818;padding:16px 12px;border-radius:8px;max-height:60vh;overflow:auto;">' +
     '<button id="closeReadmeBtn" style="float:right;background:#444;margin-left:8px;">Close</button>' +
     '<h2 style="margin-top:0;">Game Mechanics 📖</h2>' +
-    markdownToHtml(readmeText) +
+    '<p>Loading...</p>' +
     '</div>';
-  // Attach close handler
+  // Attach close handler immediately for responsiveness
   document.getElementById("closeReadmeBtn").onclick = closeReadme;
+  // Try fetching readme.md, but fall back to embedded if fails (e.g. file://)
+  fetch('readme.md').then(resp => {
+    if (!resp.ok) throw new Error("Failed to load readme.md");
+    return resp.text();
+  }).then(md => {
+    if (!readmeActive) return;
+    logDiv.innerHTML =
+      '<div id="readmeView" style="background:#181818;padding:16px 12px;border-radius:8px;max-height:60vh;overflow:auto;">' +
+      '<button id="closeReadmeBtn" style="float:right;background:#444;margin-left:8px;">Close</button>' +
+      '<h2 style="margin-top:0;">Game Mechanics 📖</h2>' +
+      markdownToHtml(md) +
+      '</div>';
+    document.getElementById("closeReadmeBtn").onclick = closeReadme;
+  }).catch(err => {
+    // Fallback: use embedded readmeText
+    if (!readmeActive) return;
+    logDiv.innerHTML =
+      '<div id="readmeView" style="background:#181818;padding:16px 12px;border-radius:8px;max-height:60vh;overflow:auto;">' +
+      '<button id="closeReadmeBtn" style="float:right;background:#444;margin-left:8px;">Close</button>' +
+      '<h2 style="margin-top:0;">Game Mechanics 📖</h2>' +
+      markdownToHtml(readmeText) +
+      '<p style="color:#f66;font-size:90%;margin-top:12px;">(Displayed from built-in copy. <span style="opacity:0.7;">Could not load <code>readme.md</code> directly.)</span></p>' +
+      '</div>';
+    document.getElementById("closeReadmeBtn").onclick = closeReadme;
+  });
 }
 
 function closeReadme() {
@@ -610,71 +674,24 @@ function saveGame() {
   localStorage.setItem("mages_tower_save", JSON.stringify(game));
 }
 
-function loadGame() {
-  const data = localStorage.getItem("mages_tower_save");
-  if (data) {
-    Object.assign(game, JSON.parse(data));
-    // Restore full log from logHistory (newest at top)
-    const logDiv = document.getElementById("log");
-    logDiv.textContent = "";
-    if (Array.isArray(game.logHistory)) {
-      // If logHistory was previously stored oldest-first, reverse it
-      // (If all entries are timestamped, this is safe)
-      // But to keep backwards compat, let's check if first entry is oldest or newest
-      // If logHistory is empty or single, just render as is
-      if (game.logHistory.length > 1) {
-        // Compare timestamps to see if ascending or descending
-        const getTS = s => s.slice(1, 15);
-        if (getTS(game.logHistory[0]) < getTS(game.logHistory[1])) {
-          // Oldest first, so reverse for newest-first
-          game.logHistory.reverse();
-        }
-      }
-      logDiv.textContent = game.logHistory.join('\n');
-      logDiv.scrollTop = 0;
-    } else {
-      game.logHistory = [];
-    }
-    log("Save loaded.");
-  } else {
-    log("A new journey begins...");
-  }
-  updateUI();
-}
-
-// --- Auto-refresh logic REMOVED ---
-// (Auto-refresh, setInterval, and focus/blur listeners have been disabled as requested.)
-
-// --- Patch loadGame to display flavored log after reload and skip 'Save loaded.' ---
-function loadGame(importedSave = null) {
-  // Robust load: loads from localStorage (default) or importedSave object (from import)
-  let loaded = false;
-  let skipSaveLoaded = false;
-  let flavorLog = null;
+// Load game from localStorage or imported save, restoring flavored refresh/sessionStorage logic
+function loadGame(imported) {
   let saveObj = null;
-  // Flavored refresh/skip logic
-  if (sessionStorage.getItem("skipSaveLoadedLog") === "1") {
-    skipSaveLoaded = true;
-    sessionStorage.removeItem("skipSaveLoadedLog");
-    flavorLog = sessionStorage.getItem("refreshFlavorLog");
-    sessionStorage.removeItem("refreshFlavorLog");
-  }
-  if (importedSave) {
-    saveObj = importedSave;
-    loaded = true;
+  let loadedFromImport = false;
+  if (typeof imported === "object" && imported !== null) {
+    saveObj = imported;
+    loadedFromImport = true;
   } else {
     const data = localStorage.getItem("mages_tower_save");
     if (data) {
       try {
         saveObj = JSON.parse(data);
-        loaded = true;
       } catch (e) {
         saveObj = null;
-        loaded = false;
       }
     }
   }
-  if (loaded && saveObj) {
+  if (saveObj) {
     // Restore all main properties
     if (typeof saveObj.energy === "number") game.energy = saveObj.energy;
     if (typeof saveObj.mana === "number") game.mana = saveObj.mana;
@@ -684,17 +701,14 @@ function loadGame(importedSave = null) {
     if (typeof saveObj.resting === "boolean") game.resting = saveObj.resting;
     if (typeof saveObj.startTime === "number" || saveObj.startTime === null) game.startTime = saveObj.startTime;
     if (typeof saveObj.lastTick === "number") game.lastTick = saveObj.lastTick;
-    // Unlocked flags
     if (typeof saveObj.unlocked === "object" && saveObj.unlocked) {
       game.unlocked = Object.assign({}, saveObj.unlocked);
     }
-    // Inventory
     if (typeof saveObj.inventory === "object" && saveObj.inventory) {
       game.inventory = Object.assign({ "Energy Potion": 0, "Mana Crystal": 0, "Glyph Shard": 0 }, saveObj.inventory);
     }
     // Log history (restore newest-first order)
     if (Array.isArray(saveObj.logHistory)) {
-      // Check if oldest-first and reverse if needed
       let hist = saveObj.logHistory.slice();
       if (hist.length > 1) {
         const getTS = s => s && s[0] === "[" ? s.slice(1, 15) : "";
@@ -703,24 +717,27 @@ function loadGame(importedSave = null) {
         }
       }
       game.logHistory = hist;
-      // Render to log div
-      const logDiv = document.getElementById("log");
-      logDiv.textContent = game.logHistory.join('\n');
-      logDiv.scrollTop = 0;
     } else {
       game.logHistory = [];
-      document.getElementById("log").textContent = "";
     }
-    // Flavored refresh logic
-    if (flavorLog) {
-      log(flavorLog);
-    } else if (importedSave) {
-      log("Save imported successfully!");
-    } else if (!skipSaveLoaded) {
+    // Render logHistory newest at top
+    const logDiv = document.getElementById("log");
+    logDiv.textContent = game.logHistory.join('\n');
+    logDiv.scrollTop = 0;
+    // Flavored refresh/sessionStorage logic
+    let flavored = false;
+    if (!loadedFromImport && typeof sessionStorage !== "undefined") {
+      // If sessionStorage.mages_tower_flavored_refresh is set, show flavored message and clear it
+      if (sessionStorage.getItem("mages_tower_flavored_refresh")) {
+        sessionStorage.removeItem("mages_tower_flavored_refresh");
+        log("You awaken, memories of your ascent swirling in your mind. (Game state restored after refresh)");
+        flavored = true;
+      }
+    }
+    if (!flavored && !loadedFromImport) {
       log("Save loaded.");
     }
-    // Save after import to persist importedSave
-    if (importedSave) saveGame();
+    // For imported saves, do not log "Save loaded." (importers handle their own log)
   } else {
     game.logHistory = [];
     document.getElementById("log").textContent = "";
@@ -729,13 +746,22 @@ function loadGame(importedSave = null) {
   updateUI();
 }
 
+// --- Auto-refresh logic REMOVED ---
+// (Auto-refresh, setInterval, and focus/blur listeners have been disabled as requested.)
+
+
 // ---- Export / Import ----
 document.getElementById("exportBtn").onclick = () => {
   const blob = new Blob([JSON.stringify(game, null, 2)], {type: "application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "mages_tower_save.json";
+  a.download = "tower_autosave.json";
+  document.body.appendChild(a);
   a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(a.href);
+    document.body.removeChild(a);
+  }, 100);
 };
 
 document.getElementById("importBtn").onclick = () => {
