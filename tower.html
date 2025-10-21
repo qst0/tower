@@ -16,12 +16,17 @@
 <p>Energy: <span id="energy">0</span> | Mana: <span id="mana">0</span> | Lore: <span id="lore">0</span> | Floor: <span id="floor">1</span> | Tempo: <span id="tempo">0</span></p>
 <p id="status"></p>
 
+<!-- Timer message for Meditate/Forced Rest appears here, under the action buttons -->
+
+
 <div id="actions">
   <button id="focusBtn">Focus (+1 Mana) 💫</button>
   <button id="restBtn">Meditate (+5 Energy) 🧘</button>
   <button id="studyBtn" style="display:none;">Study Glyph (costs 5 Mana) 📜</button>
   <button id="climbBtn" style="display:none;">Climb the Tower (costs 5 Energy) 🧗</button>
 </div>
+<!-- Dedicated timer message area directly under the action buttons -->
+<p id="timerMessage" style="min-height:1em;margin-top:0.5em;margin-bottom:0;"></p>
 <div style="margin-top:12px;">
   <button id="showReadmeBtn">Show Game Mechanics 📖</button>
 </div>
@@ -325,16 +330,16 @@ function randomFloorEvent() {
       log("A mysterious force forces you to rest!");
       game.resting = true;
       disableActions(true);
-      const statusEl = document.getElementById("status");
+      const timerMsgEl = document.getElementById("timerMessage");
       let remaining = 5;
-      statusEl.textContent = "Forced Rest... " + remaining + "s remaining";
+      timerMsgEl.textContent = "Forced Rest... " + remaining + "s remaining";
       const interval = setInterval(() => {
         remaining--;
         if (remaining > 0) {
-          statusEl.textContent = "Forced Rest... " + remaining + "s remaining";
+          timerMsgEl.textContent = "Forced Rest... " + remaining + "s remaining";
         } else {
           clearInterval(interval);
-          statusEl.textContent = "";
+          timerMsgEl.textContent = "";
           game.resting = false;
           disableActions(false);
           log("You recover from the forced rest.");
@@ -467,16 +472,16 @@ document.getElementById("restBtn").onclick = () => {
   game.resting = true;
   log("You begin to meditate for 5 seconds...");
   disableActions(true);
-  const statusEl = document.getElementById("status");
+  const timerMsgEl = document.getElementById("timerMessage");
   let remaining = 5;
-  statusEl.textContent = "Meditating... " + remaining + "s remaining";
+  timerMsgEl.textContent = "Meditating... " + remaining + "s remaining";
   const interval = setInterval(() => {
     remaining--;
     if (remaining > 0) {
-      statusEl.textContent = "Meditating... " + remaining + "s remaining";
+      timerMsgEl.textContent = "Meditating... " + remaining + "s remaining";
     } else {
       clearInterval(interval);
-      statusEl.textContent = "";
+      timerMsgEl.textContent = "";
     }
   }, 1000);
   setTimeout(() => {
@@ -485,7 +490,7 @@ document.getElementById("restBtn").onclick = () => {
     log(`You feel renewed. Energy +5 (Energy: ${Math.floor(game.energy)})`);
     disableActions(false);
     gainLoreIfFirst("meditate", "Your mind clears and energy flows anew.");
-    statusEl.textContent = "";
+    timerMsgEl.textContent = "";
     updateUI();
   }, 5000);
 };
