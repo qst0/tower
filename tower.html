@@ -642,7 +642,102 @@ function loadGame() {
   updateUI();
 }
 
-loadGame();
+// --- Auto-refresh logic ---
+// Refresh every 1 min if focused. If blurred for >1 min, refresh on focus.
+(function() {
+  let refreshInterval = null;
+  let lastBlur = null;
+  let skipSaveLoadedLog = false;
+  // Flavored log entries for refresh
+  const refreshFlavors = [
+    "The tower hums as reality resets around you...",
+    "A shimmer passes through the tower. The world realigns itself...",
+    "Arcane winds swirl; the tower's state is renewed...",
+    "A temporal bell tolls. The tower is refreshed anew...",
+    "You sense the weave of time tightening around the tower...",
+    "A pulse echoes through the stones: the tower resets itself..."
+  ];
+  function flavoredRefresh() {
+    // Save state just before reload (should be current anyway)
+    saveGame();
+    // Set a flag in sessionStorage to skip 'Save loaded' log
+    sessionStorage.setItem("skipSaveLoadedLog", "1");
+    // Set a flavored log message to display after reload
+    const flavor = refreshFlavors[Math.floor(Math.random() * refreshFlavors.length)];
+    sessionStorage.setItem("refreshFlavorLog", flavor);
+    location.reload();
+  }
+  function setRefreshInterval() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    // Only set interval if window is focused
+    if (document.hasFocus()) {
+      refreshInterval = setInterval(flavoredRefresh, 60*1000);
+    }
+  }
+  window.addEventListener("focus", function() {
+    setRefreshInterval();
+    if (lastBlur && Date.now() - lastBlur > 60*1000) {
+      // Blurred for >1min, refresh now
+      flavoredRefresh();
+    }
+    lastBlur = null;
+  });
+  window.addEventListener("blur", function() {
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      refreshInterval = null;
+    }
+    lastBlur = Date.now();
+  });
+  // On initial load, set interval if focused
+  if (document.hasFocus()) setRefreshInterval();
+})();
+
+// --- Patch loadGame to display flavored log after reload and skip 'Save loaded.' ---
+function loadGame() {
+  const data = localStorage.getItem("mages_tower_save");
+  let skipSaveLoaded = false;
+  // Check for flavored refresh on reload
+  let flavorLog = null;
+  if (sessionStorage.getItem("skipSaveLoadedLog") === "1") {
+    skipSaveLoaded = true;
+    sessionStorage.removeItem("skipSaveLoadedLog");
+    flavorLog = sessionStorage.getItem("refreshFlavorLog");
+    sessionStorage.removeItem("refreshFlavorLog");
+  }
+  if (data) {
+    Object.assign(game, JSON.parse(data));
+    // Restore full log from logHistory (newest at top)
+    const logDiv = document.getElementById("log");
+    logDiv.textContent = "";
+    if (Array.isArray(game.logHistory)) {
+      // If logHistory was previously stored oldest-first, reverse it
+      // (If all entries are timestamped, this is safe)
+      // But to keep backwards compat, let's check if first entry is oldest or newest
+      // If logHistory is empty or single, just render as is
+      if (game.logHistory.length > 1) {
+        // Compare timestamps to see if ascending or descending
+        const getTS = s => s.slice(1, 15);
+        if (getTS(game.logHistory[0]) < getTS(game.logHistory[1])) {
+          // Oldest first, so reverse for newest-first
+          game.logHistory.reverse();
+        }
+      }
+      logDiv.textContent = game.logHistory.join('\n');
+      logDiv.scrollTop = 0;
+    } else {
+      game.logHistory = [];
+    }
+    if (flavorLog) {
+      log(flavorLog);
+    } else if (!skipSaveLoaded) {
+      log("Save loaded.");
+    }
+  } else {
+    log("A new journey begins...");
+  }
+  updateUI();
+}
 
 // ---- Export / Import ----
 document.getElementById("exportBtn").onclick = () => {
