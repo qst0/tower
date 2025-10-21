@@ -206,16 +206,117 @@ function randomFloorEvent() {
 }
 
 // ---- Actions ----
-document.getElementById("focusBtn").onclick = () => {
-  if (game.energy >= 1) {
+
+// Repeated action helper for focus
+function performFocusRepeatedly() {
+  if (game.energy < 1) {
+    log("You are too tired to focus.");
+    return 0;
+  }
+  let count = 0;
+  while (game.energy >= 1) {
     game.energy -= 1;
     game.mana++;
-    gainLoreIfFirst("focus", "You feel a pulse of magic. Mana flows at the cost of your strength.");
-    log(`Focused: Energy -1 (Energy: ${Math.floor(game.energy)}), Mana +1 (Mana: ${Math.floor(game.mana)})`);
-  } else {
-    log("You are too tired to focus.");
+    count++;
   }
-};
+  if (count > 0) {
+    gainLoreIfFirst("focus", "You feel a pulse of magic. Mana flows at the cost of your strength.");
+    log(`Focused ${count} times: Energy -${count} (Energy: ${Math.floor(game.energy)}), Mana +${count} (Mana: ${Math.floor(game.mana)})`);
+  }
+  return count;
+}
+
+// Repeated action helper for study
+function performStudyRepeatedly() {
+  if (!game.unlocked.study || game.mana < 5) {
+    return 0;
+  }
+  let count = 0;
+  while (game.mana >= 5) {
+    game.mana -= 5;
+    gainLoreIfFirst("study", "You study the glyphs and glimpse deeper knowledge...");
+    game.lore++;
+    count++;
+  }
+  if (count > 0) {
+    log(`You study ancient glyphs ${count} times. Mana -${count * 5} (Mana: ${Math.floor(game.mana)}), Lore +${count} (Lore: ${game.lore})`);
+  }
+  return count;
+}
+
+// Focus button repeated action on mousedown/up
+let focusInterval = null;
+document.getElementById("focusBtn").addEventListener("mousedown", () => {
+  if (game.resting) return;
+  if (focusInterval) return;
+  // Perform once immediately
+  performFocusRepeatedly();
+  focusInterval = setInterval(() => {
+    if (game.resting) {
+      clearInterval(focusInterval);
+      focusInterval = null;
+      return;
+    }
+    if (game.energy < 1) {
+      clearInterval(focusInterval);
+      focusInterval = null;
+      return;
+    }
+    performFocusRepeatedly();
+    updateUI();
+  }, 500);
+});
+document.getElementById("focusBtn").addEventListener("mouseup", () => {
+  if (focusInterval) {
+    clearInterval(focusInterval);
+    focusInterval = null;
+  }
+});
+document.getElementById("focusBtn").addEventListener("mouseleave", () => {
+  if (focusInterval) {
+    clearInterval(focusInterval);
+    focusInterval = null;
+  }
+});
+
+// Study button repeated action on mousedown/up
+let studyInterval = null;
+document.getElementById("studyBtn").addEventListener("mousedown", () => {
+  if (game.resting) return;
+  if (studyInterval) return;
+  // Perform once immediately
+  performStudyRepeatedly();
+  studyInterval = setInterval(() => {
+    if (game.resting) {
+      clearInterval(studyInterval);
+      studyInterval = null;
+      return;
+    }
+    if (!game.unlocked.study || game.mana < 5) {
+      clearInterval(studyInterval);
+      studyInterval = null;
+      return;
+    }
+    performStudyRepeatedly();
+    updateUI();
+  }, 500);
+});
+document.getElementById("studyBtn").addEventListener("mouseup", () => {
+  if (studyInterval) {
+    clearInterval(studyInterval);
+    studyInterval = null;
+  }
+});
+document.getElementById("studyBtn").addEventListener("mouseleave", () => {
+  if (studyInterval) {
+    clearInterval(studyInterval);
+    studyInterval = null;
+  }
+});
+
+// Rest button repeated action on mousedown/up
+// For rest, the original behavior is a 5 second rest with delayed energy gain, so repeating is not meaningful.
+// We will keep original single click behavior but disable repeated action.
 document.getElementById("restBtn").onclick = () => {
   if (game.resting) {
     log("You are already resting...");
@@ -243,18 +344,13 @@ document.getElementById("restBtn").onclick = () => {
     disableActions(false);
     gainLoreIfFirst("rest", "Your body recovers. Energy flows again.");
     statusEl.textContent = "";
+    updateUI();
   }, 5000);
 };
-document.getElementById("studyBtn").onclick = () => {
-  if (game.mana >= 5) {
-    game.mana -= 5;
-    gainLoreIfFirst("study", "You study the glyphs and glimpse deeper knowledge...");
-    game.lore++;
-    log(`You study ancient glyphs. Mana -5 (Mana: ${Math.floor(game.mana)}), Lore +1 (Lore: ${game.lore})`);
-  }
-};
 
-// ---- Climb Button Handler with improvements ----
+// Climb button repeated action on mousedown/up
+// Because climbing involves prompts and random events, repeated climbing on hold is not practical or user-friendly.
+// We will keep original single click behavior only.
 document.getElementById("climbBtn").onclick = () => {
   const floorCost = getFloorCost(game.floor);
   if (game.energy < floorCost) {
