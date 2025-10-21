@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Mage’s Tower</title>
+<title>Tower</title>
 <style>
   body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
   button { background: #333; color: #fff; border: 1px solid #666; padding: 6px 12px; margin: 4px; cursor: pointer; }
@@ -34,6 +34,8 @@
 
 
 <div id="saveButtons">
+  <button id="saveBtn">Save Game</button>
+  <button id="loadBtn">Load Game</button>
   <button id="exportBtn">Export Save</button>
   <button id="importBtn">Import Save</button>
   <input type="file" id="fileInput" style="display:none;">
@@ -248,6 +250,21 @@ const game = {
   logHistory: [],
 };
 
+let autosavePending = false;
+function scheduleAutosave() {
+  if (autosavePending) return;
+  autosavePending = true;
+  const flush = () => {
+    autosavePending = false;
+    saveGame();
+  };
+  if (typeof queueMicrotask === "function") {
+    queueMicrotask(flush);
+  } else {
+    setTimeout(flush, 0);
+  }
+}
+
 // ---- Helpers for logging ----
 function pad(num, size) {
   let s = num.toString();
@@ -286,6 +303,7 @@ function log(text) {
   // Render newest at top
   logDiv.textContent = game.logHistory.join('\n');
   logDiv.scrollTop = 0;
+  scheduleAutosave();
 }
 
 // ---- Game Loop ----
@@ -299,7 +317,7 @@ function tick() {
   game.mana += elapsed * 0.1;  // +0.1 mana/sec
 
   updateUI();
-  saveGame();
+  scheduleAutosave();
 }
 
 setInterval(tick, 1000);
@@ -714,6 +732,7 @@ function loadGame(imported) {
   }
 
   updateUI();
+  scheduleAutosave();
 }
 function loadGame(imported) {
   let saveObj = null;
@@ -784,6 +803,7 @@ function loadGame(imported) {
     log("A new journey begins...");
   }
   updateUI();
+  scheduleAutosave();
 }
 
 // --- Auto-refresh logic REMOVED ---
