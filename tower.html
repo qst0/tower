@@ -23,6 +23,52 @@
   <button id="climbBtn" style="display:none;">Climb the Tower (costs 5 Energy)</button>
 </div>
 
+<section id="mechanics" style="margin-top:32px;">
+  <h2>Game Mechanics</h2>
+  <h3>Resources</h3>
+  <ul>
+    <li><strong>Energy</strong>: Required for most actions, especially climbing. Regenerates slowly over time and can be restored by resting.</li>
+    <li><strong>Mana</strong>: Used for magical actions such as studying glyphs. Gained by focusing and regenerates slowly over time.</li>
+    <li><strong>Lore</strong>: Represents your knowledge of the tower. Gained by studying, climbing, and discovering secrets. Unlocks new abilities as it increases.</li>
+    <li><strong>Tempo</strong>: Increases if you reach Floor 10 quickly. Represents your speed and mastery over the tower's challenges.</li>
+    <li><strong>Floor</strong>: Indicates your current progress up the tower. Higher floors are harder and may introduce special events.</li>
+  </ul>
+
+  <h3>Actions</h3>
+  <ul>
+    <li><strong>Focus</strong>: Converts 1 Energy into 1 Mana. Hold the button to repeat the action quickly as long as you have energy.</li>
+    <li><strong>Rest</strong>: Rest for 5 seconds to restore 5 Energy. During rest, all other actions are disabled.</li>
+    <li><strong>Study Glyph</strong>: (Unlocked after gaining enough Lore) Spend 5 Mana to gain 1 Lore. Hold the button to repeat as long as you have mana.</li>
+    <li><strong>Climb the Tower</strong>: (Unlocked after gaining enough Lore) Spend Energy to ascend one floor. The energy cost increases at higher floors.</li>
+  </ul>
+
+  <h3>Inventory</h3>
+  <ul>
+    <li><strong>Energy Potion</strong>: Restores energy when used. Found randomly while climbing.</li>
+    <li><strong>Mana Crystal</strong>: Restores mana when used. Found randomly while climbing.</li>
+    <li><strong>Glyph Shard</strong>: Protects you from magical traps (especially on Floor 8). Found randomly while climbing.</li>
+  </ul>
+
+  <h3>Random Events</h3>
+  <ul>
+    <li>Each time you climb, there is a chance for a random event to occur. These can restore or drain your energy or mana, grant Lore, or force you to rest.</li>
+    <li>There is also a chance to find inventory items while climbing.</li>
+  </ul>
+
+  <h3>Special Floor Mechanics</h3>
+  <ul>
+    <li><strong>Floor 5:</strong> You must choose a path: <em>left</em> (costs more energy but grants mana) or <em>right</em> (normal cost, no bonus).</li>
+    <li><strong>Floor 8:</strong> A mystical trap is triggered. If you have a Glyph Shard, it protects you; otherwise, you lose extra energy.</li>
+    <li><strong>Every 3 Floors:</strong> Gain 1 Lore as you climb to a new tier of the tower.</li>
+    <li><strong>Floor 10:</strong> Reaching this floor quickly (within 2 minutes) grants you extra Tempo.</li>
+  </ul>
+
+  <h3>Unlocks</h3>
+  <ul>
+    <li>Studying and climbing are unlocked as you gain Lore by performing actions and progressing in the tower.</li>
+  </ul>
+</section>
+
 <div id="saveButtons">
   <button id="exportBtn">Export Save</button>
   <button id="importBtn">Import Save</button>
@@ -78,10 +124,12 @@ function log(text) {
   const timestamp = getTimestamp();
   const hash = getRandomHex(8);
   const entry = `[${timestamp}][${hash}] ${text}`;
-  game.logHistory.push(entry);
+  // Add new log entry to the top
+  game.logHistory.unshift(entry);
   const logDiv = document.getElementById("log");
-  logDiv.textContent += (logDiv.textContent ? "\n" : "") + entry;
-  logDiv.scrollTop = logDiv.scrollHeight;
+  // Render newest at top
+  logDiv.textContent = game.logHistory.join('\n');
+  logDiv.scrollTop = 0;
 }
 
 // ---- Game Loop ----
@@ -465,14 +513,24 @@ function loadGame() {
   const data = localStorage.getItem("mages_tower_save");
   if (data) {
     Object.assign(game, JSON.parse(data));
-    // Restore full log from logHistory
+    // Restore full log from logHistory (newest at top)
     const logDiv = document.getElementById("log");
     logDiv.textContent = "";
     if (Array.isArray(game.logHistory)) {
-      for (const entry of game.logHistory) {
-        logDiv.textContent += (logDiv.textContent ? "\n" : "") + entry;
+      // If logHistory was previously stored oldest-first, reverse it
+      // (If all entries are timestamped, this is safe)
+      // But to keep backwards compat, let's check if first entry is oldest or newest
+      // If logHistory is empty or single, just render as is
+      if (game.logHistory.length > 1) {
+        // Compare timestamps to see if ascending or descending
+        const getTS = s => s.slice(1, 15);
+        if (getTS(game.logHistory[0]) < getTS(game.logHistory[1])) {
+          // Oldest first, so reverse for newest-first
+          game.logHistory.reverse();
+        }
       }
-      logDiv.scrollTop = logDiv.scrollHeight;
+      logDiv.textContent = game.logHistory.join('\n');
+      logDiv.scrollTop = 0;
     } else {
       game.logHistory = [];
     }
@@ -506,14 +564,18 @@ document.getElementById("fileInput").addEventListener("change", (e) => {
     try {
       const imported = JSON.parse(reader.result);
       Object.assign(game, imported);
-      // Restore full log from logHistory
+      // Restore full log from logHistory (newest at top)
       const logDiv = document.getElementById("log");
       logDiv.textContent = "";
       if (Array.isArray(game.logHistory)) {
-        for (const entry of game.logHistory) {
-          logDiv.textContent += (logDiv.textContent ? "\n" : "") + entry;
+        if (game.logHistory.length > 1) {
+          const getTS = s => s.slice(1, 15);
+          if (getTS(game.logHistory[0]) < getTS(game.logHistory[1])) {
+            game.logHistory.reverse();
+          }
         }
-        logDiv.scrollTop = logDiv.scrollHeight;
+        logDiv.textContent = game.logHistory.join('\n');
+        logDiv.scrollTop = 0;
       } else {
         game.logHistory = [];
       }
