@@ -693,46 +693,84 @@ function loadGame() {
 })();
 
 // --- Patch loadGame to display flavored log after reload and skip 'Save loaded.' ---
-function loadGame() {
-  const data = localStorage.getItem("mages_tower_save");
+function loadGame(importedSave = null) {
+  // Robust load: loads from localStorage (default) or importedSave object (from import)
+  let loaded = false;
   let skipSaveLoaded = false;
-  // Check for flavored refresh on reload
   let flavorLog = null;
+  let saveObj = null;
+  // Flavored refresh/skip logic
   if (sessionStorage.getItem("skipSaveLoadedLog") === "1") {
     skipSaveLoaded = true;
     sessionStorage.removeItem("skipSaveLoadedLog");
     flavorLog = sessionStorage.getItem("refreshFlavorLog");
     sessionStorage.removeItem("refreshFlavorLog");
   }
-  if (data) {
-    Object.assign(game, JSON.parse(data));
-    // Restore full log from logHistory (newest at top)
-    const logDiv = document.getElementById("log");
-    logDiv.textContent = "";
-    if (Array.isArray(game.logHistory)) {
-      // If logHistory was previously stored oldest-first, reverse it
-      // (If all entries are timestamped, this is safe)
-      // But to keep backwards compat, let's check if first entry is oldest or newest
-      // If logHistory is empty or single, just render as is
-      if (game.logHistory.length > 1) {
-        // Compare timestamps to see if ascending or descending
-        const getTS = s => s.slice(1, 15);
-        if (getTS(game.logHistory[0]) < getTS(game.logHistory[1])) {
-          // Oldest first, so reverse for newest-first
-          game.logHistory.reverse();
+  if (importedSave) {
+    saveObj = importedSave;
+    loaded = true;
+  } else {
+    const data = localStorage.getItem("mages_tower_save");
+    if (data) {
+      try {
+        saveObj = JSON.parse(data);
+        loaded = true;
+      } catch (e) {
+        saveObj = null;
+        loaded = false;
+      }
+    }
+  }
+  if (loaded && saveObj) {
+    // Restore all main properties
+    if (typeof saveObj.energy === "number") game.energy = saveObj.energy;
+    if (typeof saveObj.mana === "number") game.mana = saveObj.mana;
+    if (typeof saveObj.lore === "number") game.lore = saveObj.lore;
+    if (typeof saveObj.floor === "number") game.floor = saveObj.floor;
+    if (typeof saveObj.tempo === "number") game.tempo = saveObj.tempo;
+    if (typeof saveObj.resting === "boolean") game.resting = saveObj.resting;
+    if (typeof saveObj.startTime === "number" || saveObj.startTime === null) game.startTime = saveObj.startTime;
+    if (typeof saveObj.lastTick === "number") game.lastTick = saveObj.lastTick;
+    // Unlocked flags
+    if (typeof saveObj.unlocked === "object" && saveObj.unlocked) {
+      game.unlocked = Object.assign({}, saveObj.unlocked);
+    }
+    // Inventory
+    if (typeof saveObj.inventory === "object" && saveObj.inventory) {
+      game.inventory = Object.assign({ "Energy Potion": 0, "Mana Crystal": 0, "Glyph Shard": 0 }, saveObj.inventory);
+    }
+    // Log history (restore newest-first order)
+    if (Array.isArray(saveObj.logHistory)) {
+      // Check if oldest-first and reverse if needed
+      let hist = saveObj.logHistory.slice();
+      if (hist.length > 1) {
+        const getTS = s => s && s[0] === "[" ? s.slice(1, 15) : "";
+        if (getTS(hist[0]) < getTS(hist[1])) {
+          hist.reverse();
         }
       }
+      game.logHistory = hist;
+      // Render to log div
+      const logDiv = document.getElementById("log");
       logDiv.textContent = game.logHistory.join('\n');
       logDiv.scrollTop = 0;
     } else {
       game.logHistory = [];
+      document.getElementById("log").textContent = "";
     }
+    // Flavored refresh logic
     if (flavorLog) {
       log(flavorLog);
+    } else if (importedSave) {
+      log("Save imported successfully!");
     } else if (!skipSaveLoaded) {
       log("Save loaded.");
     }
+    // Save after import to persist importedSave
+    if (importedSave) saveGame();
   } else {
+    game.logHistory = [];
+    document.getElementById("log").textContent = "";
     log("A new journey begins...");
   }
   updateUI();
@@ -758,25 +796,7 @@ document.getElementById("fileInput").addEventListener("change", (e) => {
   reader.onload = () => {
     try {
       const imported = JSON.parse(reader.result);
-      Object.assign(game, imported);
-      // Restore full log from logHistory (newest at top)
-      const logDiv = document.getElementById("log");
-      logDiv.textContent = "";
-      if (Array.isArray(game.logHistory)) {
-        if (game.logHistory.length > 1) {
-          const getTS = s => s.slice(1, 15);
-          if (getTS(game.logHistory[0]) < getTS(game.logHistory[1])) {
-            game.logHistory.reverse();
-          }
-        }
-        logDiv.textContent = game.logHistory.join('\n');
-        logDiv.scrollTop = 0;
-      } else {
-        game.logHistory = [];
-      }
-      log("Save imported successfully!");
-      saveGame();
-      updateUI();
+      loadGame(imported);
     } catch (err) {
       log("Failed to import save file.");
     }
