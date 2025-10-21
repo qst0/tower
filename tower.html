@@ -42,6 +42,7 @@ const game = {
   tempo: 0,
   startTime: null,
   resting: false,
+  inventory: { "Energy Potion": 0, "Mana Crystal": 0, "Glyph Shard": 0 },
 };
 
 // ---- Game Loop ----
@@ -50,9 +51,9 @@ function tick() {
   const elapsed = (now - game.lastTick) / 1000;
   game.lastTick = now;
 
-  // passive regen
-  game.energy += elapsed * 0.1; // +0.1 energy/sec
-  game.mana += elapsed * 0.05;  // +0.05 mana/sec
+  // passive regen (increased for early progress)
+  game.energy += elapsed * 0.2; // +0.2 energy/sec
+  game.mana += elapsed * 0.1;  // +0.1 mana/sec
 
   updateUI();
   saveGame();
@@ -65,7 +66,7 @@ function disableActions(state) {
   document.getElementById("focusBtn").disabled = state;
   document.getElementById("restBtn").disabled = state;
   document.getElementById("studyBtn").disabled = state || (!game.unlocked.study || game.mana < 5);
-  document.getElementById("climbBtn").disabled = state || (!game.unlocked.climb || game.energy < 5);
+  document.getElementById("climbBtn").disabled = state || (!game.unlocked.climb || game.energy < getFloorCost(game.floor));
 }
 
 function updateUI() {
@@ -79,13 +80,87 @@ function updateUI() {
   document.getElementById("studyBtn").disabled = game.resting || game.mana < 5;
 
   document.getElementById("climbBtn").style.display = game.unlocked.climb ? "inline-block" : "none";
-  document.getElementById("climbBtn").disabled = game.resting || game.energy < 5;
+  document.getElementById("climbBtn").disabled = game.resting || game.energy < getFloorCost(game.floor);
 
   if (game.resting) {
     disableActions(true);
   } else {
     disableActions(false);
   }
+}
+
+// ---- Helpers ----
+function getFloorCost(floor) {
+  if (floor >= 1 && floor <= 3) return 4;
+  if (floor >= 4 && floor <= 6) return 6;
+  if (floor >= 7 && floor <= 10) return 8;
+  return 8; // default for beyond floor 10 if needed
+}
+
+function log(text) {
+  const logDiv = document.getElementById("log");
+  logDiv.textContent += "\n" + text;
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+// ---- Inventory ----
+function addItem(item) {
+  if (!game.inventory[item]) game.inventory[item] = 0;
+  game.inventory[item]++;
+  log(`You found a ${item}!`);
+  console.log(`Inventory: ${item} x${game.inventory[item]}`);
+}
+
+function useItem(item) {
+  if (game.inventory[item] > 0) {
+    game.inventory[item]--;
+    log(`You used a ${item}.`);
+    console.log(`Inventory: ${item} x${game.inventory[item]}`);
+    return true;
+  }
+  return false;
+}
+
+// ---- Random Floor Events ----
+function randomFloorEvent() {
+  const events = [
+    () => { game.energy += 2; log("You found a hidden energy spring! Energy +2"); },
+    () => { game.mana += 2; log("A mana crystal glows nearby. Mana +2"); },
+    () => { game.lore++; log("You discover ancient runes. Lore +1"); },
+    () => {
+      const lost = Math.min(2, Math.floor(game.energy));
+      game.energy -= lost;
+      log(`A sudden chill drains your strength. Energy -${lost}`);
+    },
+    () => {
+      const lost = Math.min(2, Math.floor(game.mana));
+      game.mana -= lost;
+      log(`A magical backlash saps your mana. Mana -${lost}`);
+    },
+    () => {
+      log("A mysterious force forces you to rest!");
+      game.resting = true;
+      disableActions(true);
+      const statusEl = document.getElementById("status");
+      let remaining = 5;
+      statusEl.textContent = "Forced Rest... " + remaining + "s remaining";
+      const interval = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+          statusEl.textContent = "Forced Rest... " + remaining + "s remaining";
+        } else {
+          clearInterval(interval);
+          statusEl.textContent = "";
+          game.resting = false;
+          disableActions(false);
+          log("You recover from the forced rest.");
+          updateUI();
+        }
+      }, 1000);
+    }
+  ];
+  const eventIndex = Math.floor(Math.random() * events.length);
+  events[eventIndex]();
 }
 
 // ---- Actions ----
@@ -135,30 +210,90 @@ document.getElementById("studyBtn").onclick = () => {
     game.lore++;
   }
 };
+
+// ---- Climb Button Handler with improvements ----
 document.getElementById("climbBtn").onclick = () => {
-  if (game.energy >= 5) {
-    game.energy -= 5;
-    if (!game.startTime) game.startTime = Date.now();
-    game.floor++;
-    log("You ascend to Floor " + game.floor + ".");
-    if (game.floor % 3 === 0) {
-      game.lore++;
-      log("You uncover new lore as you climb. Lore +1");
-    }
-    if (game.floor >= 10) {
-      const elapsed = (Date.now() - game.startTime) / 1000;
-      if (elapsed <= 600) {
-        game.tempo++;
-        log("You’ve reached Floor 10 in record time! Tempo +1");
-      } else {
-        log("You’ve reached Floor 10. The tower hums with quiet power...");
-      }
-      game.startTime = null;
-    }
-    updateUI();
-  } else {
+  const floorCost = getFloorCost(game.floor);
+  if (game.energy < floorCost) {
     log("You are too tired to climb.");
+    return;
   }
+
+  // Special floor 5 event: choose path
+  if (game.floor === 5) {
+    let choice = prompt("You reach Floor 5: Choose your path (left/right):").toLowerCase();
+    while (choice !== "left" && choice !== "right") {
+      choice = prompt("Invalid choice. Please choose 'left' or 'right':").toLowerCase();
+    }
+    if (choice === "left") {
+      // left path costs more energy but gives mana
+      const leftCost = floorCost + 2;
+      if (game.energy < leftCost) {
+        log("You don't have enough energy for the left path. You take the right path instead.");
+        // right path: safe, normal cost
+        game.energy -= floorCost;
+        log("You take the right path, safe but uneventful.");
+      } else {
+        game.energy -= leftCost;
+        game.mana += 3;
+        log("You take the left path, draining but mana-rich. Energy -" + leftCost + ", Mana +3");
+      }
+    } else {
+      // right path: safe, normal cost
+      game.energy -= floorCost;
+      log("You take the right path, safe but uneventful. Energy -" + floorCost);
+    }
+  }
+  // Special floor 8 event: mystical trap
+  else if (game.floor === 8) {
+    if (game.inventory["Glyph Shard"] > 0) {
+      useItem("Glyph Shard");
+      log("A mystical trap triggers but your Glyph Shard protects you.");
+      game.energy -= floorCost;
+    } else {
+      game.energy -= floorCost;
+      const lostEnergy = Math.min(2, Math.floor(game.energy));
+      game.energy -= lostEnergy;
+      log(`A mystical trap drains your energy! Energy -${floorCost + lostEnergy}`);
+    }
+  }
+  else {
+    // normal floors
+    game.energy -= floorCost;
+  }
+
+  if (!game.startTime) game.startTime = Date.now();
+  game.floor++;
+  log("You ascend to Floor " + game.floor + ".");
+
+  // Random event (50% chance)
+  if (Math.random() < 0.5) {
+    randomFloorEvent();
+  }
+
+  // Random drop chance (30%)
+  if (Math.random() < 0.3) {
+    const items = ["Energy Potion", "Mana Crystal", "Glyph Shard"];
+    const foundItem = items[Math.floor(Math.random() * items.length)];
+    addItem(foundItem);
+  }
+
+  if (game.floor % 3 === 0) {
+    game.lore++;
+    log("You uncover new lore as you climb. Lore +1");
+  }
+
+  if (game.floor >= 10) {
+    const elapsed = (Date.now() - game.startTime) / 1000;
+    if (elapsed <= 120) {
+      game.tempo++;
+      log("You’ve reached Floor 10 in record time! Tempo +1");
+    } else {
+      log("You’ve reached Floor 10. The tower hums with quiet power...");
+    }
+    game.startTime = null;
+  }
+  updateUI();
 };
 
 function gainLoreIfFirst(action, message) {
@@ -176,13 +311,6 @@ function gainLoreIfFirst(action, message) {
     }
   }
   updateUI();
-}
-
-// ---- Logging ----
-function log(text) {
-  const logDiv = document.getElementById("log");
-  logDiv.textContent += "\n" + text;
-  logDiv.scrollTop = logDiv.scrollHeight;
 }
 
 // ---- Save / Load ----
