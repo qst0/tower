@@ -661,7 +661,7 @@ document.getElementById("exportBtn").onclick = () => {
   const blob = new Blob([JSON.stringify(game, null, 2)], {type: "application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "mages_tower_save.json";
+  a.download = "tower_save.json";
   a.click();
 };
 
