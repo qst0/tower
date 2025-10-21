@@ -642,55 +642,8 @@ function loadGame() {
   updateUI();
 }
 
-// --- Auto-refresh logic ---
-// Refresh every 5 seconds if focused. If blurred for >1 min, refresh on focus.
-(function() {
-  let refreshInterval = null;
-  let lastBlur = null;
-  // Flavored log entries for refresh
-  const refreshFlavors = [
-    "The tower hums as reality resets around you...",
-    "A shimmer passes through the tower. The world realigns itself...",
-    "Arcane winds swirl; the tower's state is renewed...",
-    "A temporal bell tolls. The tower is refreshed anew...",
-    "You sense the weave of time tightening around the tower...",
-    "A pulse echoes through the stones: the tower resets itself..."
-  ];
-  function flavoredRefresh() {
-    // Save state just before reload (should be current anyway)
-    saveGame();
-    // Set a flag in sessionStorage to skip 'Save loaded' log
-    sessionStorage.setItem("skipSaveLoadedLog", "1");
-    // Set a flavored log message to display after reload
-    const flavor = refreshFlavors[Math.floor(Math.random() * refreshFlavors.length)];
-    sessionStorage.setItem("refreshFlavorLog", flavor);
-    location.reload();
-  }
-  function setRefreshInterval() {
-    if (refreshInterval) clearInterval(refreshInterval);
-    // Only set interval if window is focused
-    if (document.hasFocus()) {
-      refreshInterval = setInterval(flavoredRefresh, 5*1000);
-    }
-  }
-  window.addEventListener("focus", function() {
-    setRefreshInterval();
-    if (lastBlur && Date.now() - lastBlur > 60*1000) {
-      // Blurred for >1min, refresh now
-      flavoredRefresh();
-    }
-    lastBlur = null;
-  });
-  window.addEventListener("blur", function() {
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-      refreshInterval = null;
-    }
-    lastBlur = Date.now();
-  });
-  // On initial load, set interval if focused
-  if (document.hasFocus()) setRefreshInterval();
-})();
+// --- Auto-refresh logic REMOVED ---
+// (Auto-refresh, setInterval, and focus/blur listeners have been disabled as requested.)
 
 // --- Patch loadGame to display flavored log after reload and skip 'Save loaded.' ---
 function loadGame(importedSave = null) {
