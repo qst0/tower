@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mage’s Tower</title>
+<style>
+  body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
+  button { background: #333; color: #fff; border: 1px solid #666; padding: 6px 12px; margin: 4px; cursor: pointer; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  #log { margin-top: 20px; white-space: pre-wrap; border-top: 1px solid #333; padding-top: 10px; }
+  #saveButtons { margin-top: 10px; }
+</style>
+</head>
+<body>
+<h1>Mage’s Tower</h1>
+<p>Energy: <span id="energy">0</span> | Mana: <span id="mana">0</span> | Lore: <span id="lore">0</span> | Floor: <span id="floor">1</span> | Tempo: <span id="tempo">0</span></p>
+<p id="status"></p>
+
+<div id="actions">
+  <button id="focusBtn">Focus (+1 Mana)</button>
+  <button id="restBtn">Rest (+1 Energy)</button>
+  <button id="studyBtn" style="display:none;">Study Glyph (costs 5 Mana)</button>
+  <button id="climbBtn" style="display:none;">Climb the Tower (costs 5 Energy)</button>
+</div>
+
+<div id="saveButtons">
+  <button id="exportBtn">Export Save</button>
+  <button id="importBtn">Import Save</button>
+  <input type="file" id="fileInput" style="display:none;">
+</div>
+
+<div id="log"></div>
+
+<script>
+const game = {
+  energy: 0,
+  mana: 0,
+  lore: 0,
+  unlocked: { study: false },
+  lastTick: Date.now(),
+  floor: 1,
+  tempo: 0,
+  startTime: null,
+  resting: false,
+};
+
+// ---- Game Loop ----
+function tick() {
+  const now = Date.now();
+  const elapsed = (now - game.lastTick) / 1000;
+  game.lastTick = now;
+
+  // passive regen
+  game.energy += elapsed * 0.1; // +0.1 energy/sec
+  game.mana += elapsed * 0.05;  // +0.05 mana/sec
+
+  updateUI();
+  saveGame();
+}
+
+setInterval(tick, 1000);
+
+// ---- UI Updates ----
+function disableActions(state) {
+  document.getElementById("focusBtn").disabled = state;
+  document.getElementById("restBtn").disabled = state;
+  document.getElementById("studyBtn").disabled = state || (!game.unlocked.study || game.mana < 5);
+  document.getElementById("climbBtn").disabled = state || (!game.unlocked.climb || game.energy < 5);
+}
+
+function updateUI() {
+  document.getElementById("energy").textContent = Math.floor(game.energy);
+  document.getElementById("mana").textContent = Math.floor(game.mana);
+  document.getElementById("lore").textContent = game.lore;
+  document.getElementById("floor").textContent = game.floor;
+  document.getElementById("tempo").textContent = game.tempo;
+
+  document.getElementById("studyBtn").style.display = game.unlocked.study ? "inline-block" : "none";
+  document.getElementById("studyBtn").disabled = game.resting || game.mana < 5;
+
+  document.getElementById("climbBtn").style.display = game.unlocked.climb ? "inline-block" : "none";
+  document.getElementById("climbBtn").disabled = game.resting || game.energy < 5;
+
+  if (game.resting) {
+    disableActions(true);
+  } else {
+    disableActions(false);
+  }
+}
+
+// ---- Actions ----
+document.getElementById("focusBtn").onclick = () => {
+  if (game.energy >= 1) {
+    game.energy -= 1;
+    game.mana++;
+    gainLoreIfFirst("focus", "You feel a pulse of magic. Mana flows at the cost of your strength.");
+  } else {
+    log("You are too tired to focus.");
+  }
+};
+document.getElementById("restBtn").onclick = () => {
+  if (game.resting) {
+    log("You are already resting...");
+    return;
+  }
+  game.resting = true;
+  log("You begin to rest for 5 seconds...");
+  disableActions(true);
+  const statusEl = document.getElementById("status");
+  let remaining = 5;
+  statusEl.textContent = "Resting... " + remaining + "s remaining";
+  const interval = setInterval(() => {
+    remaining--;
+    if (remaining > 0) {
+      statusEl.textContent = "Resting... " + remaining + "s remaining";
+    } else {
+      clearInterval(interval);
+      statusEl.textContent = "";
+    }
+  }, 1000);
+  setTimeout(() => {
+    game.energy += 5;
+    game.resting = false;
+    log("You feel refreshed. Energy +5");
+    disableActions(false);
+    gainLoreIfFirst("rest", "Your body recovers. Energy flows again.");
+    statusEl.textContent = "";
+  }, 5000);
+};
+document.getElementById("studyBtn").onclick = () => {
+  if (game.mana >= 5) {
+    game.mana -= 5;
+    gainLoreIfFirst("study", "You study the glyphs and glimpse deeper knowledge...");
+    log("You study ancient glyphs. Lore +1");
+    game.lore++;
+  }
+};
+document.getElementById("climbBtn").onclick = () => {
+  if (game.energy >= 5) {
+    game.energy -= 5;
+    if (!game.startTime) game.startTime = Date.now();
+    game.floor++;
+    log("You ascend to Floor " + game.floor + ".");
+    if (game.floor % 3 === 0) {
+      game.lore++;
+      log("You uncover new lore as you climb. Lore +1");
+    }
+    if (game.floor >= 10) {
+      const elapsed = (Date.now() - game.startTime) / 1000;
+      if (elapsed <= 600) {
+        game.tempo++;
+        log("You’ve reached Floor 10 in record time! Tempo +1");
+      } else {
+        log("You’ve reached Floor 10. The tower hums with quiet power...");
+      }
+      game.startTime = null;
+    }
+    updateUI();
+  } else {
+    log("You are too tired to climb.");
+  }
+};
+
+function gainLoreIfFirst(action, message) {
+  if (!game.unlocked[action]) {
+    game.unlocked[action] = true;
+    log(message);
+    game.lore++;
+    if (game.lore >= 2 && !game.unlocked.study) {
+      game.unlocked.study = true;
+      log("You’ve unlocked the ability to Study Glyphs!");
+    }
+    if (game.lore >= 4 && !game.unlocked.climb) {
+      game.unlocked.climb = true;
+      log("You feel the pull of the tower above you... You may now climb!");
+    }
+  }
+  updateUI();
+}
+
+// ---- Logging ----
+function log(text) {
+  const logDiv = document.getElementById("log");
+  logDiv.textContent += "\n" + text;
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+// ---- Save / Load ----
+function saveGame() {
+  localStorage.setItem("mages_tower_save", JSON.stringify(game));
+}
+
+function loadGame() {
+  const data = localStorage.getItem("mages_tower_save");
+  if (data) {
+    Object.assign(game, JSON.parse(data));
+    log("Save loaded.");
+  } else {
+    log("A new journey begins...");
+  }
+  updateUI();
+}
+
+loadGame();
+
+// ---- Export / Import ----
+document.getElementById("exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify(game, null, 2)], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "mages_tower_save.json";
+  a.click();
+};
+
+document.getElementById("importBtn").onclick = () => {
+  document.getElementById("fileInput").click();
+};
+
+document.getElementById("fileInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      Object.assign(game, imported);
+      log("Save imported successfully!");
+      saveGame();
+      updateUI();
+    } catch (err) {
+      log("Failed to import save file.");
+    }
+  };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>
