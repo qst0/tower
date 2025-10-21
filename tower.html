@@ -643,11 +643,10 @@ function loadGame() {
 }
 
 // --- Auto-refresh logic ---
-// Refresh every 1 min if focused. If blurred for >1 min, refresh on focus.
+// Refresh every 5 seconds if focused. If blurred for >1 min, refresh on focus.
 (function() {
   let refreshInterval = null;
   let lastBlur = null;
-  let skipSaveLoadedLog = false;
   // Flavored log entries for refresh
   const refreshFlavors = [
     "The tower hums as reality resets around you...",
@@ -671,7 +670,7 @@ function loadGame() {
     if (refreshInterval) clearInterval(refreshInterval);
     // Only set interval if window is focused
     if (document.hasFocus()) {
-      refreshInterval = setInterval(flavoredRefresh, 60*1000);
+      refreshInterval = setInterval(flavoredRefresh, 5*1000);
     }
   }
   window.addEventListener("focus", function() {
