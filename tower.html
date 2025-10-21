@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>tower</title>
+<title>Mage’s Tower</title>
 <style>
   body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
   button { background: #333; color: #fff; border: 1px solid #666; padding: 6px 12px; margin: 4px; cursor: pointer; }
@@ -12,7 +12,7 @@
 </style>
 </head>
 <body>
-<h1>tower</h1>
+<h1>Mage’s Tower</h1>
 <p>Energy: <span id="energy">0</span> | Mana: <span id="mana">0</span> | Lore: <span id="lore">0</span> | Floor: <span id="floor">1</span> | Tempo: <span id="tempo">0</span></p>
 <p id="status"></p>
 
@@ -22,11 +22,52 @@
   <button id="studyBtn" style="display:none;">Study Glyph (costs 5 Mana) 📜</button>
   <button id="climbBtn" style="display:none;">Climb the Tower (costs 5 Energy) 🧗</button>
 </div>
-<div style="margin-top:12px;">
-  <button id="showReadmeBtn">Show Game Mechanics 📖</button>
-</div>
 
+<section id="mechanics" style="margin-top:32px;">
+  <h2>Game Mechanics</h2>
+  <h3>Resources</h3>
+  <ul>
+    <li><strong>Energy</strong>: Required for most actions, especially climbing. Regenerates slowly over time and can be restored by resting.</li>
+    <li><strong>Mana</strong>: Used for magical actions such as studying glyphs. Gained by focusing and regenerates slowly over time.</li>
+    <li><strong>Lore</strong>: Represents your knowledge of the tower. Gained by studying, climbing, and discovering secrets. Unlocks new abilities as it increases.</li>
+    <li><strong>Tempo</strong>: Increases if you reach Floor 10 quickly. Represents your speed and mastery over the tower's challenges.</li>
+    <li><strong>Floor</strong>: Indicates your current progress up the tower. Higher floors are harder and may introduce special events.</li>
+  </ul>
 
+  <h3>Actions</h3>
+  <ul>
+    <li><strong>Focus 💫</strong>: Converts 1 Energy into 1 Mana. Hold the button to repeat the action quickly as long as you have energy.</li>
+    <li><strong>Meditate 🧘</strong>: Meditate for 5 seconds to restore 5 Energy. During meditation, all other actions are disabled.</li>
+    <li><strong>Study Glyph 📜</strong>: (Unlocked after gaining enough Lore) Spend 5 Mana to gain 1 Lore. Hold the button to repeat as long as you have mana.</li>
+    <li><strong>Climb the Tower 🧗</strong>: (Unlocked after gaining enough Lore) Spend Energy to ascend one floor. The energy cost increases at higher floors.</li>
+  </ul>
+
+  <h3>Inventory</h3>
+  <ul>
+    <li><strong>Energy Potion</strong>: Restores energy when used. Found randomly while climbing.</li>
+    <li><strong>Mana Crystal</strong>: Restores mana when used. Found randomly while climbing.</li>
+    <li><strong>Glyph Shard</strong>: Protects you from magical traps (especially on Floor 8). Found randomly while climbing.</li>
+  </ul>
+
+  <h3>Random Events</h3>
+  <ul>
+    <li>Each time you climb, there is a chance for a random event to occur. These can restore or drain your energy or mana, grant Lore, or force you to rest.</li>
+    <li>There is also a chance to find inventory items while climbing.</li>
+  </ul>
+
+  <h3>Special Floor Mechanics</h3>
+  <ul>
+    <li><strong>Floor 5:</strong> You must choose a path: <em>left</em> (costs more energy but grants mana) or <em>right</em> (normal cost, no bonus).</li>
+    <li><strong>Floor 8:</strong> A mystical trap is triggered. If you have a Glyph Shard, it protects you; otherwise, you lose extra energy.</li>
+    <li><strong>Every 3 Floors:</strong> Gain 1 Lore as you climb to a new tier of the tower.</li>
+    <li><strong>Floor 10:</strong> Reaching this floor quickly (within 2 minutes) grants you extra Tempo.</li>
+  </ul>
+
+  <h3>Unlocks</h3>
+  <ul>
+    <li>Studying and climbing are unlocked as you gain Lore by performing actions and progressing in the tower.</li>
+  </ul>
+</section>
 
 <div id="saveButtons">
   <button id="exportBtn">Export Save</button>
@@ -35,158 +76,6 @@
 </div>
 
 <div id="log"></div>
-// ---- README/Game Mechanics Modal ----
-const readmeContent = `
-# readme.md
-
-## Button Unlock Guide
-
-This table explains when each action button becomes visible and usable in tower:
-
-| Button | Unlock Condition | Usability Requirement | Mechanic |
-|--------|-----------------|---------------------|----------|
-| Focus 💫 | Always available | Energy ≥ 1, not meditating | Converts 1 Energy into 1 Mana. Can be repeated by holding the button. |
-| Meditate 🧘 | Always available | Not already meditating | Restores 5 Energy over 5 seconds. No repeated hold; disables other actions during meditation. |
-| Study Glyph 📜 | Lore ≥ 2 (auto-unlocked) | Mana ≥ 5, not meditating | Spend 5 Mana to gain 1 Lore. Can be repeated by holding the button. |
-| Climb 🧗 | Lore ≥ 4 (auto-unlocked) | Enough Energy for current floor, not meditating | Spend Energy to ascend a floor. Special floor events may occur. |
-
-## Game Mechanics
-
-### Resources
-* **Energy**: Required for most actions, especially climbing. Regenerates slowly over time and can be restored by resting.
-* **Mana**: Used for magical actions such as studying glyphs. Gained by focusing and regenerates slowly over time.
-* **Lore**: Represents your knowledge of the tower. Gained by studying, climbing, and discovering secrets. Unlocks new abilities as it increases.
-* **Tempo**: Increases if you reach Floor 10 quickly. Represents your speed and mastery over the tower's challenges.
-* **Floor**: Indicates your current progress up the tower. Higher floors are harder and may introduce special events.
-
-### Actions
-* **Focus 💫**: Converts 1 Energy into 1 Mana. Hold the button to repeat the action quickly as long as you have energy.
-* **Meditate 🧘**: Meditate for 5 seconds to restore 5 Energy. During meditation, all other actions are disabled.
-* **Study Glyph 📜**: (Unlocked after gaining enough Lore) Spend 5 Mana to gain 1 Lore. Hold the button to repeat as long as you have mana.
-* **Climb the Tower 🧗**: (Unlocked after gaining enough Lore) Spend Energy to ascend one floor. The energy cost increases at higher floors.
-
-### Inventory
-* **Energy Potion**: Restores energy when used. Found randomly while climbing.
-* **Mana Crystal**: Restores mana when used. Found randomly while climbing.
-* **Glyph Shard**: Protects you from magical traps (especially on Floor 8). Found randomly while climbing.
-
-### Random Events
-* Each time you climb, there is a chance for a random event to occur. These can restore or drain your energy or mana, grant Lore, or force you to rest.
-* There is also a chance to find inventory items while climbing.
-
-### Special Floor Mechanics
-* **Floor 5:** You must choose a path: *left* (costs more energy but grants mana) or *right* (normal cost, no bonus).
-* **Floor 8:** A mystical trap is triggered. If you have a Glyph Shard, it protects you; otherwise, you lose extra energy.
-* **Every 3 Floors:** Gain 1 Lore as you climb to a new tier of the tower.
-* **Floor 10:** Reaching this floor quickly (within 2 minutes) grants you extra Tempo.
-
-### Unlocks
-* Studying and climbing are unlocked as you gain Lore by performing actions and progressing in the tower.
-
-## Launch Checklist (Automagician / tower)
-
-This checklist tracks all steps needed to prepare for launch. Keep it updated as progress is made.
-
-### 1️⃣ Domain & Hosting
-- [ ] Secure domain (AUTOMAGITION.COM or preferred)
-- [ ] Set up DNS & hosting (GitHub Pages, Netlify, Vercel, or custom server)
-- [ ] Configure HTTPS / SSL certificate
-
-### 2️⃣ Game Code & Version Control
-- [ ] Ensure final stable build in \`tower.html\`
-- [ ] Use Git for version control with commits and \`.gitignore\`
-- [ ] Backup saves and dev notes
-
-### 3️⃣ Assets & Design
-- [ ] Finalize UI/UX (buttons, log, status indicators)
-- [ ] Polish styles (colors, fonts, readability)
-- [ ] Add sounds / effects if desired
-- [ ] Prepare screenshots / GIFs for marketing
-
-### 4️⃣ Features & Testing
-- [ ] Verify game loop, idle regen, resource calculations
-- [ ] Test floor progression, tempo tracking, rest/focus mechanics
-- [ ] Ensure save/load/export/import works correctly
-- [ ] Cross-browser testing (Chrome, Firefox, Safari)
-
-### 5️⃣ Marketing & Launch Prep
-- [ ] Create README / dev notes for users
-- [ ] Prepare social media / blog posts
-- [ ] Consider teaser videos or GIFs
-- [ ] Write press or community announcements
-
-### 6️⃣ Launch & Monitoring
-- [ ] Upload final build to hosting / domain
-- [ ] Monitor player feedback and bug reports
-- [ ] Plan post-launch updates and lore expansions
-`;
-
-let showingReadme = false;
-const logDiv = document.getElementById("log");
-const showReadmeBtn = document.getElementById("showReadmeBtn");
-
-function renderReadme() {
-  // Convert markdown to HTML (very minimal, just for the README structure)
-  let html = readmeContent
-    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    .replace(/^\* (.*)$/gm, '<li>$1</li>')
-    .replace(/^- \[ \] (.*)$/gm, '<li><input type="checkbox" disabled> $1</li>')
-    .replace(/^- \[x\] (.*)$/gim, '<li><input type="checkbox" checked disabled> $1</li>')
-    .replace(/^- (.*)$/gm, '<li>$1</li>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/^\s*$/gm, '')
-    ;
-  // Table support (very basic)
-  html = html.replace(/\|(.+)\|\n\|([-\s|]+)\|\n((?:\|.*\|\n?)+)/g, function(_, header, sep, rows) {
-    const headers = header.split('|').map(s=>s.trim()).filter(Boolean);
-    const rowLines = rows.trim().split('\n');
-    let table = '<table border="1" cellpadding="4" style="border-collapse:collapse;background:#191919;color:#eee;margin:10px 0;">';
-    table += '<tr>' + headers.map(h=>'<th>'+h+'</th>').join('') + '</tr>';
-    rowLines.forEach(line=>{
-      const cells = line.split('|').map(s=>s.trim()).filter(Boolean);
-      if(cells.length)
-        table += '<tr>' + cells.map(c=>'<td>'+c+'</td>').join('') + '</tr>';
-    });
-    table += '</table>';
-    return table;
-  });
-  // List blocks
-  html = html.replace(/(<li>[\s\S]*?<\/li>)+/g, function(match) {
-    return '<ul>' + match.replace(/<\/li>\s*<li>/g, '</li><li>') + '</ul>';
-  });
-  // Headings fix order
-  html = html.replace(/<\/h1>\s*<h2>/g, '</h1><br><h2>');
-  // Add a close button
-  html = `<div style="text-align:right;margin-bottom:8px;">
-    <button id="closeReadmeBtn" style="background:#222;color:#fff;border:1px solid #666;padding:4px 16px;cursor:pointer;">Close</button>
-  </div>` + html;
-  return html;
-}
-
-function showReadme() {
-  if (showingReadme) return;
-  showingReadme = true;
-  logDiv.innerHTML = renderReadme();
-  // Disable all action buttons while viewing mechanics
-  disableActions(true);
-  // Attach close handler
-  document.getElementById("closeReadmeBtn").onclick = hideReadme;
-}
-
-function hideReadme() {
-  showingReadme = false;
-  // Restore log view
-  logDiv.textContent = game.logHistory.join('\n');
-  disableActions(game.resting);
-}
-
-showReadmeBtn.addEventListener("click", function() {
-  if (!showingReadme) showReadme();
-});
 
 <script>
 const game = {
@@ -619,11 +508,11 @@ function gainLoreIfFirst(action, message) {
 
 // ---- Save / Load ----
 function saveGame() {
-  localStorage.setItem("tower_save", JSON.stringify(game));
+  localStorage.setItem("mages_tower_save", JSON.stringify(game));
 }
 
 function loadGame() {
-  const data = localStorage.getItem("tower_save");
+  const data = localStorage.getItem("mages_tower_save");
   if (data) {
     Object.assign(game, JSON.parse(data));
     // Restore full log from logHistory (newest at top)
@@ -661,7 +550,7 @@ document.getElementById("exportBtn").onclick = () => {
   const blob = new Blob([JSON.stringify(game, null, 2)], {type: "application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "tower_save.json";
+  a.download = "mages_tower_save.json";
   a.click();
 };
 
