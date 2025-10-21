@@ -140,14 +140,14 @@ function getFloorCost(floor) {
 function addItem(item) {
   if (!game.inventory[item]) game.inventory[item] = 0;
   game.inventory[item]++;
-  log(`You found a ${item}!`);
+  log(`You found a ${item}! Inventory now: ${item} x${game.inventory[item]}`);
   console.log(`Inventory: ${item} x${game.inventory[item]}`);
 }
 
 function useItem(item) {
   if (game.inventory[item] > 0) {
     game.inventory[item]--;
-    log(`You used a ${item}.`);
+    log(`You used a ${item}. Inventory now: ${item} x${game.inventory[item]}`);
     console.log(`Inventory: ${item} x${game.inventory[item]}`);
     return true;
   }
@@ -157,18 +157,27 @@ function useItem(item) {
 // ---- Random Floor Events ----
 function randomFloorEvent() {
   const events = [
-    () => { game.energy += 2; log("You found a hidden energy spring! Energy +2"); },
-    () => { game.mana += 2; log("A mana crystal glows nearby. Mana +2"); },
-    () => { game.lore++; log("You discover ancient runes. Lore +1"); },
+    () => { 
+      game.energy += 2; 
+      log(`You found a hidden energy spring! Energy +2 (Energy: ${Math.floor(game.energy)})`); 
+    },
+    () => { 
+      game.mana += 2; 
+      log(`A mana crystal glows nearby. Mana +2 (Mana: ${Math.floor(game.mana)})`); 
+    },
+    () => { 
+      game.lore++; 
+      log(`You discover ancient runes. Lore +1 (Lore: ${game.lore})`); 
+    },
     () => {
       const lost = Math.min(2, Math.floor(game.energy));
       game.energy -= lost;
-      log(`A sudden chill drains your strength. Energy -${lost}`);
+      log(`A sudden chill drains your strength. Energy -${lost} (Energy: ${Math.floor(game.energy)})`);
     },
     () => {
       const lost = Math.min(2, Math.floor(game.mana));
       game.mana -= lost;
-      log(`A magical backlash saps your mana. Mana -${lost}`);
+      log(`A magical backlash saps your mana. Mana -${lost} (Mana: ${Math.floor(game.mana)})`);
     },
     () => {
       log("A mysterious force forces you to rest!");
@@ -202,6 +211,7 @@ document.getElementById("focusBtn").onclick = () => {
     game.energy -= 1;
     game.mana++;
     gainLoreIfFirst("focus", "You feel a pulse of magic. Mana flows at the cost of your strength.");
+    log(`Focused: Energy -1 (Energy: ${Math.floor(game.energy)}), Mana +1 (Mana: ${Math.floor(game.mana)})`);
   } else {
     log("You are too tired to focus.");
   }
@@ -229,7 +239,7 @@ document.getElementById("restBtn").onclick = () => {
   setTimeout(() => {
     game.energy += 5;
     game.resting = false;
-    log("You feel refreshed. Energy +5");
+    log(`You feel refreshed. Energy +5 (Energy: ${Math.floor(game.energy)})`);
     disableActions(false);
     gainLoreIfFirst("rest", "Your body recovers. Energy flows again.");
     statusEl.textContent = "";
@@ -239,8 +249,8 @@ document.getElementById("studyBtn").onclick = () => {
   if (game.mana >= 5) {
     game.mana -= 5;
     gainLoreIfFirst("study", "You study the glyphs and glimpse deeper knowledge...");
-    log("You study ancient glyphs. Lore +1");
     game.lore++;
+    log(`You study ancient glyphs. Mana -5 (Mana: ${Math.floor(game.mana)}), Lore +1 (Lore: ${game.lore})`);
   }
 };
 
@@ -267,16 +277,16 @@ document.getElementById("climbBtn").onclick = () => {
         log("You don't have enough energy for the left path. You take the right path instead.");
         // right path: safe, normal cost
         game.energy -= floorCost;
-        log("You take the right path, safe but uneventful.");
+        log(`You take the right path, safe but uneventful. Energy -${floorCost} (Energy: ${Math.floor(game.energy)})`);
       } else {
         game.energy -= leftCost;
         game.mana += 3;
-        log("You take the left path, draining but mana-rich. Energy -" + leftCost + ", Mana +3");
+        log(`You take the left path, draining but mana-rich. Energy -${leftCost} (Energy: ${Math.floor(game.energy)}), Mana +3 (Mana: ${Math.floor(game.mana)})`);
       }
     } else {
       // right path: safe, normal cost
       game.energy -= floorCost;
-      log("You take the right path, safe but uneventful. Energy -" + floorCost);
+      log(`You take the right path, safe but uneventful. Energy -${floorCost} (Energy: ${Math.floor(game.energy)})`);
     }
   }
   // Special floor 8 event: mystical trap
@@ -285,21 +295,23 @@ document.getElementById("climbBtn").onclick = () => {
       useItem("Glyph Shard");
       log("A mystical trap triggers but your Glyph Shard protects you.");
       game.energy -= floorCost;
+      log(`Energy -${floorCost} (Energy: ${Math.floor(game.energy)})`);
     } else {
       game.energy -= floorCost;
       const lostEnergy = Math.min(2, Math.floor(game.energy));
       game.energy -= lostEnergy;
-      log(`A mystical trap drains your energy! Energy -${floorCost + lostEnergy}`);
+      log(`A mystical trap drains your energy! Energy -${floorCost + lostEnergy} (Energy: ${Math.floor(game.energy)})`);
     }
   }
   else {
     // normal floors
     game.energy -= floorCost;
+    log(`Energy -${floorCost} (Energy: ${Math.floor(game.energy)})`);
   }
 
   if (!game.startTime) game.startTime = Date.now();
   game.floor++;
-  log("You ascend to Floor " + game.floor + ".");
+  log(`You ascend to Floor ${game.floor}. (Floor: ${game.floor})`);
 
   // Random event (50% chance)
   if (Math.random() < 0.5) {
@@ -315,14 +327,14 @@ document.getElementById("climbBtn").onclick = () => {
 
   if (game.floor % 3 === 0) {
     game.lore++;
-    log("You uncover new lore as you climb. Lore +1");
+    log(`You uncover new lore as you climb. Lore +1 (Lore: ${game.lore})`);
   }
 
   if (game.floor >= 10) {
     const elapsed = (Date.now() - game.startTime) / 1000;
     if (elapsed <= 120) {
       game.tempo++;
-      log("You’ve reached Floor 10 in record time! Tempo +1");
+      log(`You’ve reached Floor 10 in record time! Tempo +1 (Tempo: ${game.tempo})`);
     } else {
       log("You’ve reached Floor 10. The tower hums with quiet power...");
     }
