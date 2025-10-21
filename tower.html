@@ -619,11 +619,11 @@ function gainLoreIfFirst(action, message) {
 
 // ---- Save / Load ----
 function saveGame() {
-  localStorage.setItem("mages_tower_save", JSON.stringify(game));
+  localStorage.setItem("tower_save", JSON.stringify(game));
 }
 
 function loadGame() {
-  const data = localStorage.getItem("mages_tower_save");
+  const data = localStorage.getItem("tower_save");
   if (data) {
     Object.assign(game, JSON.parse(data));
     // Restore full log from logHistory (newest at top)
