@@ -677,6 +677,45 @@ function saveGame() {
 // Load game from localStorage or imported save, restoring flavored refresh/sessionStorage logic
 function loadGame(imported) {
   let saveObj = null;
+  if (typeof imported === "object" && imported !== null) {
+    saveObj = imported;
+  } else {
+    const data = localStorage.getItem("tower_autosave"); // <-- updated key
+    if (data) {
+      try {
+        saveObj = JSON.parse(data);
+      } catch (e) {
+        saveObj = null;
+      }
+    }
+  }
+
+  if (saveObj) {
+    // Restore all properties
+    Object.assign(game, saveObj);
+
+    // Ensure logHistory is newest-first
+    if (Array.isArray(game.logHistory) && game.logHistory.length > 1) {
+      const getTS = s => s && s[0] === "[" ? s.slice(1, 15) : "";
+      if (getTS(game.logHistory[0]) < getTS(game.logHistory[1])) {
+        game.logHistory.reverse();
+      }
+    }
+
+    // Render the log
+    const logDiv = document.getElementById("log");
+    logDiv.textContent = game.logHistory.join("\n");
+    logDiv.scrollTop = 0;
+
+    log("Save loaded.");
+  } else {
+    game.logHistory = [];
+    log("A new journey begins...");
+  }
+
+  updateUI();
+}
+  let saveObj = null;
   let loadedFromImport = false;
   if (typeof imported === "object" && imported !== null) {
     saveObj = imported;
