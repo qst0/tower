@@ -1,0 +1,77 @@
+body {
+  font-family: monospace;
+  background: #111;
+  color: #eee;
+  padding: 20px;
+}
+
+button {
+  background: #333;
+  color: #fff;
+  border: 1px solid #666;
+  padding: 6px 12px;
+  margin: 4px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#log {
+  margin-top: 20px;
+  white-space: pre-wrap;
+  border-top: 1px solid #333;
+  padding-top: 10px;
+}
+
+#saveButtons {
+  margin-top: 10px;
+}
+
+#actions .featured-action {
+  border-color: #ffc94d;
+  box-shadow: 0 0 8px rgba(255, 201, 77, 0.6);
+}
+
+#statusPanel {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid #333;
+  background: #161616;
+  border-radius: 6px;
+}
+
+#statusPanel h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+#statusList {
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+  line-height: 1.6;
+}
+
+#statusList li {
+  position: relative;
+  padding-left: 18px;
+}
+
+#statusList li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #ffc94d;
+}
+
+#statusPanel .status-empty {
+  font-style: italic;
+  color: #888;
+}
+
+#statusList li.status-empty::before {
+  display: none;
+}
